@@ -1,20 +1,12 @@
-
-# coding: utf-8
-
-# In[1]:
-
-import bz2
-import collections
 import os
 import tensorflow as tf
 import numpy as np
-#import lazy_property
-from helpers import download
-from lxml import etree
+import collections
 from attrdict import AttrDict
 from EmbeddingModel import EmbeddingModel
 from RawDataParser import Wikipedia
 from withableWriter import withableWriter
+from runManager import getRun
 
 
 # In[2]:
@@ -55,22 +47,25 @@ model = EmbeddingModel(data, target, params)
 
 corpus = Wikipedia(
     'https://dumps.wikimedia.org/enwiki/20171120/enwiki-20171120-pages-meta-current1.xml-p10p30303.bz2',
-    '~/wikipedia',
+    'wikipedia',
     params.vocabulary_size)
 examples = skipgrams(corpus, params.max_context)
 batches = batched(examples, params.batch_size)
 
 cost_summary = tf.summary.scalar(tensor = model.cost, name = 'cost')
 
-sess = tf.Session()
-sess.run(tf.global_variables_initializer())
-average = collections.deque(maxlen=100)
-for index, batch in enumerate(batches):
-    feed_dict = {data: batch[0], target: batch[1]}
-    cost, _ = sess.run([model.cost, model.optimize], feed_dict)
-    average.append(cost)
-    print('{}: {:5.1f}'.format(index + 1, sum(average) / len(average)))
+directory = getRun("wikipedia")
 
-embeddings = sess.run(model.embeddings)
-np.save('/home/pietro/wikipedia/embeddings.npy', embeddings)
+print("run in " + directory)
 
+with tf.Session() as sess, withableWriter(getRun("wikipedia")):
+    sess.run(tf.global_variables_initializer())
+    average = collections.deque(maxlen=100)
+    for index, batch in enumerate(batches):
+        feed_dict = {data: batch[0], target: batch[1]}
+        cost, _ = sess.run([model.cost, model.optimize], feed_dict)
+        average.append(cost)
+        print('{}: {:5.1f}'.format(index + 1, sum(average) / len(average)))
+
+        embeddings = sess.run(model.embeddings)
+        np.save('/home/pietro/wikipedia/embeddings.npy', embeddings)

@@ -1,6 +1,11 @@
 import re
 import os
 import bz2
+from helpers.download import download
+from lxml import etree
+import collections
+
+
 
 class Wikipedia:
     
