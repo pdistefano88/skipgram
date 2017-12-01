@@ -68,4 +68,4 @@ with tf.Session() as sess, withableWriter(directory):
         print('{}: {:5.1f}'.format(index + 1, sum(average) / len(average)))
 
         embeddings = sess.run(model.embeddings)
-        np.save('/home/pietro/wikipedia/embeddings.npy', embeddings)
+        np.save('embeddings.npy', embeddings)
