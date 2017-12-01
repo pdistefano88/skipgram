@@ -58,7 +58,7 @@ directory = getRun("wikipedia")
 
 print("run in " + directory)
 
-with tf.Session() as sess, withableWriter(getRun("wikipedia")):
+with tf.Session() as sess, withableWriter(directory):
     sess.run(tf.global_variables_initializer())
     average = collections.deque(maxlen=100)
     for index, batch in enumerate(batches):

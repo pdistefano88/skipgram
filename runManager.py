@@ -20,4 +20,4 @@ def getRun(directory):
         j = run_names[len(run_names) - 1] + 1
     else:
         j = 0
-    return "./+" + directory + str(j)
+    return os.path.join(directory, str(j))
