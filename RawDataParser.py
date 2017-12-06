@@ -21,7 +21,7 @@ class Wikipedia:
         if not os.path.isfile(self._vocabulary_path):
             print('Build vocabulary')
             self._build_vocabulary()
-        with open("counter.pkl", "wb") as f:
+        with open(os.path.join(self._cache_dir,"counter.pkl"), "rb") as f:
             counter = pickle.load(f)
         self._total_count = sum(counter.values())
         with bz2.open(self._vocabulary_path, 'rt') as vocabulary:
@@ -94,7 +94,7 @@ class Wikipedia:
         with bz2.open(self._vocabulary_path, 'wt') as vocabulary:
             for word in common:
                 vocabulary.write(word + '\n')
-        with open("counter.pkl", "wb") as f:
+        with open(os.path.join(self._cache_dir,"counter.pkl"), "wb") as f:
             pickle.dump(counter, f)    
 
     @classmethod
