@@ -4,14 +4,14 @@ import bz2
 from helpers.download import download
 from lxml import etree
 import collections
-
+import pickle
 
 
 class Wikipedia:
     
     TOKEN_REGEX = re.compile(r'[A-Za-z]+|[!?.:,()]')
 
-    def __init__(self, url, cache_dir, vocabulary_size=10000):
+    def __init__(self, url, cache_dir, vocabulary_size=-1):
         self._cache_dir = os.path.expanduser(cache_dir)
         self._pages_path = os.path.join(self._cache_dir, 'pages.bz2')
         self._vocabulary_path = os.path.join(self._cache_dir, 'vocabulary.bz2')
@@ -21,9 +21,17 @@ class Wikipedia:
         if not os.path.isfile(self._vocabulary_path):
             print('Build vocabulary')
             self._build_vocabulary(vocabulary_size)
+            counter = pickle.load("counter.pkl")
+            self._total_count = sum(counter.values())
         with bz2.open(self._vocabulary_path, 'rt') as vocabulary:
             print('Read vocabulary')
             self._vocabulary = [x.strip() for x in vocabulary]
+        if vocabulary_size < 0:
+            vocabulary_size = 1
+            vocabulary_iter = iter(count.most_common())
+            while next(vocabulary_iter)[1] > 4:
+                vocabulary_size += 1
+        self._vocabulary_size = vocabulary_size
         self._indices = {x: i for i, x in enumerate(self._vocabulary)}
 
     def __iter__(self):
@@ -36,17 +44,23 @@ class Wikipedia:
 
     @property
     def vocabulary_size(self):
-        return len(self._vocabulary)
+        return self._vocabulary_size
+    
+    @property
+    def total_count(self):
+        return self._total_count
 
     def encode(self, word):
         """Get the vocabulary index of a string word."""
-        return self._indices.get(word, 0)
+        index = self._indices.get(word, 0)
+        if index > self._vocabulary_size:
+            return 0
+        else:
+            return index
 
     def decode(self, index):
         """Get back the string word from a vocabulary index."""
         return self._vocabulary[index]
-
-
     
     def _read_pages(self, url):
         """
@@ -64,7 +78,7 @@ class Wikipedia:
                 pages.write(' '.join(words) + '\n')
                 element.clear()
 
-    def _build_vocabulary(self, vocabulary_size):
+    def _build_vocabulary(self):
         """
         Count words in the pages file and write a list of the most frequent
         words to the vocabulary file.
@@ -74,12 +88,13 @@ class Wikipedia:
             for page in pages:
                 words = page.strip().split()
                 counter.update(words)
-        common = ['<unk>'] + counter.most_common(vocabulary_size - 1)
+        common = ['<unk>'] + counter.most_common()
         common = [x[0] for x in common]
         with bz2.open(self._vocabulary_path, 'wt') as vocabulary:
             for word in common:
                 vocabulary.write(word + '\n')
-
+        pickle.dump(counter, "counter.pkl")    
+s
     @classmethod
     def _tokenize(cls, page):
         words = cls.TOKEN_REGEX.findall(page)

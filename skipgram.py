@@ -8,9 +8,6 @@ from RawDataParser import Wikipedia
 from withableWriter import withableWriter
 from runManager import getRun
 
-
-# In[2]:
-
 def skipgrams(pages, max_context):
     """Form training pairs according to the skip-gram model."""
     for words in pages:
@@ -20,7 +17,6 @@ def skipgrams(pages, max_context):
                 yield current, target
             for target in words[index + 1: index + context + 1]:
                 yield current, target
-
 
 def batched(iterator, batch_size):
     """Group a numerical stream into batches and yield them as Numpy arrays."""
@@ -36,8 +32,8 @@ params = AttrDict(
     max_context=10,
     embedding_size=200,
     contrastive_examples=100,
-    learning_rate=0.5,
-    momentum=0.5,
+    learning_rate=0.1,
+    momentum=0.9,
     batch_size=1000,
 )  
 
@@ -46,26 +42,32 @@ target = tf.placeholder(tf.int32, [None])
 model = EmbeddingModel(data, target, params)
 
 corpus = Wikipedia(
-    'https://dumps.wikimedia.org/enwiki/20171120/enwiki-20171120-pages-meta-current1.xml-p10p30303.bz2',
+    'https://dumps.wikimedia.org/enwiki/20171120/enwiki-20171120-pages-articles-multistream.xml.bz2',
     'wikipedia',
     params.vocabulary_size)
 examples = skipgrams(corpus, params.max_context)
 batches = batched(examples, params.batch_size)
 
-cost_summary = tf.summary.scalar(tensor = model.cost, name = 'cost')
+cost_summary = tf.summary.scalar(name = 'cost', tensor = tf.reduce_mean(model.cost))
+merged_summaries = tf.summary.merge_all()
 
 directory = getRun("wikipedia")
 
 print("run in " + directory)
 
-with tf.Session() as sess, withableWriter(directory):
+with tf.Session() as sess, withableWriter(directory) as writer:
     sess.run(tf.global_variables_initializer())
     average = collections.deque(maxlen=100)
+    step = 0
     for index, batch in enumerate(batches):
         feed_dict = {data: batch[0], target: batch[1]}
-        cost, _ = sess.run([model.cost, model.optimize], feed_dict)
+        cost, _, ms = sess.run([model.cost, model.optimize, merged_summaries], feed_dict)
         average.append(cost)
-        print('{}: {:5.1f}'.format(index + 1, sum(average) / len(average)))
-
-        embeddings = sess.run(model.embeddings)
-        np.save('embeddings.npy', embeddings)
+        writer.add_summary(ms, global_step=step)        
+        if step % 1000 == 0:
+            writer.flush()
+            print('{}: {:5.1f}'.format(index + 1, sum(average) / len(average)))            
+        if step % 100000 == 0:
+            embeddings = sess.run(model.embeddings)            
+            np.save('embeddings.npy', embeddings)            
+        step +=1
