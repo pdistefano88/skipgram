@@ -20,9 +20,10 @@ class Wikipedia:
             self._read_pages(url)
         if not os.path.isfile(self._vocabulary_path):
             print('Build vocabulary')
-            self._build_vocabulary(vocabulary_size)
-            counter = pickle.load("counter.pkl")
-            self._total_count = sum(counter.values())
+            self._build_vocabulary()
+        with open("counter.pkl", "wb") as f:
+            counter = pickle.load(f)
+        self._total_count = sum(counter.values())
         with bz2.open(self._vocabulary_path, 'rt') as vocabulary:
             print('Read vocabulary')
             self._vocabulary = [x.strip() for x in vocabulary]
@@ -50,10 +51,10 @@ class Wikipedia:
     def total_count(self):
         return self._total_count
 
-    def encode(self, word):
+    def encode(self, word, limit_size = True):
         """Get the vocabulary index of a string word."""
         index = self._indices.get(word, 0)
-        if index > self._vocabulary_size:
+        if index > self._vocabulary_size and limit_size == True:
             return 0
         else:
             return index
@@ -93,7 +94,8 @@ class Wikipedia:
         with bz2.open(self._vocabulary_path, 'wt') as vocabulary:
             for word in common:
                 vocabulary.write(word + '\n')
-        pickle.dump(counter, "counter.pkl")    
+        with open("counter.pkl", "wb") as f:
+            pickle.dump(counter, f)    
 
     @classmethod
     def _tokenize(cls, page):

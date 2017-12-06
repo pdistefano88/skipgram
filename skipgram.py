@@ -28,23 +28,31 @@ def batched(iterator, batch_size):
         yield data, target
     
 params = AttrDict(
-    vocabulary_size=10000,
+    vocabulary_size=-1,
     max_context=10,
-    embedding_size=200,
-    contrastive_examples=100,
+    embedding_size=1000,
+    contrastive_examples=10,
     learning_rate=0.1,
     momentum=0.9,
     batch_size=1000,
 )  
 
-data = tf.placeholder(tf.int32, [None])
-target = tf.placeholder(tf.int32, [None])
-model = EmbeddingModel(data, target, params)
 
 corpus = Wikipedia(
     'https://dumps.wikimedia.org/enwiki/20171120/enwiki-20171120-pages-articles-multistream.xml.bz2',
     'wikipedia',
     params.vocabulary_size)
+
+print("total number of words: %i" % corpus.total_count)
+print("steps in one epoch: %i" % corpus.total_count/params.batch_size)
+print("vocabulary size: %i" % corpus.vocabulary_size)
+
+params.vocabulary_size = corpus.vocabulary_size
+data = tf.placeholder(tf.int32, [None])
+target = tf.placeholder(tf.int32, [None])
+model = EmbeddingModel(data, target, params)
+
+
 examples = skipgrams(corpus, params.max_context)
 batches = batched(examples, params.batch_size)
 
