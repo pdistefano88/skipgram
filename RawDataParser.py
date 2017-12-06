@@ -94,7 +94,7 @@ class Wikipedia:
             for word in common:
                 vocabulary.write(word + '\n')
         pickle.dump(counter, "counter.pkl")    
-s
+
     @classmethod
     def _tokenize(cls, page):
         words = cls.TOKEN_REGEX.findall(page)
