@@ -11,7 +11,7 @@ class Wikipedia:
     
     TOKEN_REGEX = re.compile(r'[A-Za-z]+|[!?.:,()]')
 
-    def __init__(self, url, cache_dir, vocabulary_size=-1):
+    def __init__(self, url, cache_dir, vocabulary_size=-1, max_count = 100):
         self._cache_dir = os.path.expanduser(cache_dir)
         self._pages_path = os.path.join(self._cache_dir, 'pages.bz2')
         self._vocabulary_path = os.path.join(self._cache_dir, 'vocabulary.bz2')
@@ -24,15 +24,16 @@ class Wikipedia:
         with open(os.path.join(self._cache_dir,"counter.pkl"), "rb") as f:
             counter = pickle.load(f)
         self._total_count = sum(counter.values())
-        with bz2.open(self._vocabulary_path, 'rt') as vocabulary:
-            print('Read vocabulary')
-            self._vocabulary = [x.strip() for x in vocabulary]
         if vocabulary_size < 0:
             vocabulary_size = 1
-            vocabulary_iter = iter(count.most_common())
-            while next(vocabulary_iter)[1] > 4:
+            vocabulary_iter = iter(counter.most_common())
+            while next(vocabulary_iter)[1] > max_count - 1:
                 vocabulary_size += 1
-        self._vocabulary_size = vocabulary_size
+        del counter
+        self._vocabulary_size = vocabulary_size            
+        with bz2.open(self._vocabulary_path, 'rt') as vocabulary:
+            print('Read vocabulary')
+            self._vocabulary = [x.strip() for x, i in zip(vocabulary, range(self._total_count)) if i < self._vocabulary_size]
         self._indices = {x: i for i, x in enumerate(self._vocabulary)}
 
     def __iter__(self):

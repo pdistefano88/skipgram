@@ -30,11 +30,11 @@ def batched(iterator, batch_size):
 params = AttrDict(
     vocabulary_size=-1,
     max_context=10,
-    embedding_size=1000,
+    embedding_size=500,
     contrastive_examples=10,
-    learning_rate=0.1,
+    learning_rate=0.01,
     momentum=0.9,
-    batch_size=1000,
+    batch_size=20,
 )  
 
 
@@ -44,7 +44,8 @@ corpus = Wikipedia(
     params.vocabulary_size)
 
 print("total number of words: %i" % corpus.total_count)
-print("steps in one epoch: %i" % corpus.total_count/params.batch_size)
+total_steps =  params.max_context / 2 * corpus.total_count / params.batch_size
+print("steps in one epoch: %f" % total_steps)
 print("vocabulary size: %i" % corpus.vocabulary_size)
 
 params.vocabulary_size = corpus.vocabulary_size
@@ -72,10 +73,13 @@ with tf.Session() as sess, withableWriter(directory) as writer:
         cost, _, ms = sess.run([model.cost, model.optimize, merged_summaries], feed_dict)
         average.append(cost)
         writer.add_summary(ms, global_step=step)        
-        if step % 1000 == 0:
+        if step % 1000 == 999:
             writer.flush()
             print('{}: {:5.1f}'.format(index + 1, sum(average) / len(average)))            
-        if step % 100000 == 0:
-            embeddings = sess.run(model.embeddings)            
-            np.save('embeddings.npy', embeddings)            
+        if step % 1000000 == 999999:
+            np.save('embeddings_' + str(params.vocabulary_size) + '_' + str(step) +'.npy', sess.run(model.embeddings))
+            try:
+                os.remove('embeddings_' + str(params.vocabulary_size) + '_' + str(step - 10000000) +'.npy')
+            except:
+                pass
         step +=1

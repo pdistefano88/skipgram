@@ -20,8 +20,7 @@ class EmbeddingModel:
     
     @lazy
     def optimize(self):
-        optimizer = tf.train.MomentumOptimizer(
-            self.params.learning_rate, self.params.momentum)
+        optimizer = tf.train.AdamOptimizer()
         return optimizer.minimize(self.cost)
 
     @lazy
