@@ -11,10 +11,11 @@ class Wikipedia:
     
     TOKEN_REGEX = re.compile(r'[A-Za-z]+|[!?.:,()]')
 
-    def __init__(self, url, cache_dir, vocabulary_size=-1, max_count = 100):
+    def __init__(self, url, cache_dir, vocabulary_size=-1, max_count = 100, l = 0):
         self._cache_dir = os.path.expanduser(cache_dir)
         self._pages_path = os.path.join(self._cache_dir, 'pages.bz2')
         self._vocabulary_path = os.path.join(self._cache_dir, 'vocabulary.bz2')
+        self._lambda = l
         if not os.path.isfile(self._pages_path):
             print('Read pages')
             self._read_pages(url)
@@ -22,14 +23,13 @@ class Wikipedia:
             print('Build vocabulary')
             self._build_vocabulary()
         with open(os.path.join(self._cache_dir,"counter.pkl"), "rb") as f:
-            counter = pickle.load(f)
-        self._total_count = sum(counter.values())
+            self._counter = pickle.load(f)
+        self._total_count = sum(self._counter.values())
         if vocabulary_size < 0:
             vocabulary_size = 1
-            vocabulary_iter = iter(counter.most_common())
+            vocabulary_iter = iter(self._counter.most_common())
             while next(vocabulary_iter)[1] > max_count - 1:
                 vocabulary_size += 1
-        del counter
         self._vocabulary_size = vocabulary_size            
         with bz2.open(self._vocabulary_path, 'rt') as vocabulary:
             print('Read vocabulary')
@@ -51,6 +51,11 @@ class Wikipedia:
     @property
     def total_count(self):
         return self._total_count
+
+    @property
+    def counter(self):
+        return self._counter
+
 
     def encode(self, word, limit_size = True):
         """Get the vocabulary index of a string word."""

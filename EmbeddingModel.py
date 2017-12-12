@@ -20,7 +20,7 @@ class EmbeddingModel:
     
     @lazy
     def optimize(self):
-        optimizer = tf.train.AdamOptimizer()
+        optimizer = tf.train.AdagradOptimizer(self.params.learning_rate)
         return optimizer.minimize(self.cost)
 
     @lazy
@@ -34,4 +34,4 @@ class EmbeddingModel:
         return tf.reduce_mean(tf.nn.nce_loss(
             weight, bias, target, embedded,
             self.params.contrastive_examples,
-            self.params.vocabulary_size))   
+            self.params.vocabulary_size))
